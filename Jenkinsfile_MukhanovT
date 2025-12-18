@@ -52,9 +52,9 @@ pipeline {
                 sh '''
                     echo "Building Docker image..."
                     docker build -f docker/Dockerfile_MukhanovT -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .
-                    docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest
+                    docker tag todo-app-mukhanovt:${BUILD_NUMBER} todo-app-mukhanovt:latest
                     echo "Docker images created:"
-                    docker images | grep ${DOCKER_IMAGE}
+                    docker images | grep todo-app-mukhanovt
                 '''
             }
         }
