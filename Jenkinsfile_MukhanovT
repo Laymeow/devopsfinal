@@ -15,20 +15,14 @@ pipeline {
         }
         
         stage('Verify Tools') {
-            steps {
-                bat '''
-                    echo "Verifying Maven installation..."
-                    where mvn
-                    "%MAVEN_PATH%" --version
-                    
-                    echo "Verifying Java..."
-                    java -version
-                    
-                    echo "Verifying Docker..."
-                    docker --version
-                '''
-            }
-        }
+    steps {
+        sh 'echo "Verifying Maven..."'
+        sh 'which mvn'
+        sh 'mvn --version'
+        sh 'java -version'
+        sh 'docker --version'
+    }
+}
         
         stage('Build') {
             steps {
@@ -86,12 +80,8 @@ pipeline {
     
     post {
         always {
-            bat '''
-                echo "Cleaning up..."
-                docker container prune -f
-                docker image prune -f
-            '''
-            cleanWs()
+                sh 'echo "Cleaning up..."'
+                sh 'docker system prune -f || true'
         }
         success {
             echo 'SUCCESS: DevOps2 Pipeline completed - MukhanovT'
