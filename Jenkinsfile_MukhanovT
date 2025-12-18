@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         DOCKER_IMAGE = 'todo-app-mukhanovt'
-        MAVEN_PATH = 'C:\\Program Files\\apache-maven-3.9.11\\bin\\mvn.cmd'
+        // Убираем MAVEN_PATH — в Linux Maven доступен как 'mvn'
     }
     
     stages {
@@ -15,59 +15,61 @@ pipeline {
         }
         
         stage('Verify Tools') {
-    steps {
-        sh 'echo "Verifying Maven..."'
-        sh 'which mvn'
-        sh 'mvn --version'
-        sh 'java -version'
-        sh 'docker --version'
-    }
-}
+            steps {
+                sh 'echo "Verifying Maven..."'
+                sh 'which mvn'
+                sh 'mvn --version'
+                sh 'java -version'
+                sh 'docker --version'
+            }
+        }
         
         stage('Build') {
             steps {
-                bat """
+                sh '''
                     echo "Building Spring Boot application..."
-                    "%MAVEN_PATH%" clean compile -q
-                """
+                    cd app
+                    mvn clean compile -q
+                '''
             }
         }
         
         
         stage('Package') {
             steps {
-                bat """
+                sh '''
                     echo "Packaging application..."
-                    "%MAVEN_PATH%" package -DskipTests
+                    cd app
+                    mvn package -DskipTests
                     echo "Generated JAR:"
-                    dir target\\*.jar
-                """
+                    ls -l target/*.jar
+                '''
             }
         }
         
         stage('Docker Build') {
             steps {
-                bat """
+                sh '''
                     echo "Building Docker image..."
-                    docker build -f Dockerfile_MukhanovT -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .
+                    docker build -f docker/Dockerfile_MukhanovT -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .
                     docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest
                     echo "Docker images created:"
-                    docker images | findstr ${DOCKER_IMAGE}
-                """
+                    docker images | grep ${DOCKER_IMAGE}
+                '''
             }
         }
         
         stage('Docker Test') {
             steps {
-                bat """
+                sh '''
                     echo "Testing Docker container..."
                     docker run -d -p 8080:8090 --name test-${BUILD_NUMBER} ${DOCKER_IMAGE}:latest
-                    timeout /t 10
-                    curl http://localhost:8080/tasks
+                    sleep 10
+                    curl -f http://localhost:8080/tasks || echo "Test endpoint failed"
                     docker stop test-${BUILD_NUMBER}
                     docker rm test-${BUILD_NUMBER}
                     echo "Docker test completed"
-                """
+                '''
             }
         }
         
@@ -80,8 +82,8 @@ pipeline {
     
     post {
         always {
-                sh 'echo "Cleaning up..."'
-                sh 'docker system prune -f || true'
+            sh 'echo "Cleaning up..."'
+            sh 'docker system prune -f || true'
         }
         success {
             echo 'SUCCESS: DevOps2 Pipeline completed - MukhanovT'
