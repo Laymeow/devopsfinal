@@ -1,0 +1,103 @@
+pipeline {
+    agent any
+    
+    environment {
+        DOCKER_IMAGE = 'todo-app-mukhanovt'
+        MAVEN_PATH = 'C:\\Program Files\\apache-maven-3.9.11\\bin\\mvn.cmd'
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Starting DevOps2 Pipeline - MukhanovT'
+                checkout scm
+            }
+        }
+        
+        stage('Verify Tools') {
+            steps {
+                bat '''
+                    echo "Verifying Maven installation..."
+                    where mvn
+                    "%MAVEN_PATH%" --version
+                    
+                    echo "Verifying Java..."
+                    java -version
+                    
+                    echo "Verifying Docker..."
+                    docker --version
+                '''
+            }
+        }
+        
+        stage('Build') {
+            steps {
+                bat """
+                    echo "Building Spring Boot application..."
+                    "%MAVEN_PATH%" clean compile -q
+                """
+            }
+        }
+        
+        
+        stage('Package') {
+            steps {
+                bat """
+                    echo "Packaging application..."
+                    "%MAVEN_PATH%" package -DskipTests
+                    echo "Generated JAR:"
+                    dir target\\*.jar
+                """
+            }
+        }
+        
+        stage('Docker Build') {
+            steps {
+                bat """
+                    echo "Building Docker image..."
+                    docker build -f Dockerfile_MukhanovT -t ${DOCKER_IMAGE}:${BUILD_NUMBER} .
+                    docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest
+                    echo "Docker images created:"
+                    docker images | findstr ${DOCKER_IMAGE}
+                """
+            }
+        }
+        
+        stage('Docker Test') {
+            steps {
+                bat """
+                    echo "Testing Docker container..."
+                    docker run -d -p 8080:8090 --name test-${BUILD_NUMBER} ${DOCKER_IMAGE}:latest
+                    timeout /t 10
+                    curl http://localhost:8080/tasks
+                    docker stop test-${BUILD_NUMBER}
+                    docker rm test-${BUILD_NUMBER}
+                    echo "Docker test completed"
+                """
+            }
+        }
+        
+        stage('Complete') {
+            steps {
+                echo 'Pipeline completed successfully - MukhanovT'
+            }
+        }
+    }
+    
+    post {
+        always {
+            bat '''
+                echo "Cleaning up..."
+                docker container prune -f
+                docker image prune -f
+            '''
+            cleanWs()
+        }
+        success {
+            echo 'SUCCESS: DevOps2 Pipeline completed - MukhanovT'
+        }
+        failure {
+            echo 'FAILURE: DevOps2 Pipeline failed - MukhanovT'
+        }
+    }
+}

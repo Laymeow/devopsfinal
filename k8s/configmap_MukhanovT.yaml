@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: todo-config
+  labels:
+    created-by: mukhanovt
+data:
+  application.yml: |
+    server:
+      port: 8090
+    spring:
+      application:
+        name: todo-app-mukhanovt
+  database.url: "jdbc:postgresql://postgres-service:5432/todo"
+  environment: "production"
